@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projeto de Inclusão Educacional</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .top-bar {
+            background-color: #e7f3ff;
+            padding: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 100px; /* Espaçamento entre os logos */
+        }
+
+        .top-bar img {
+            height: 80px; /* Altura fixa */
+            width: auto; /* Manter proporção */
+        }
+
+        .container {
+            display: flex;
+            flex: 1;
+        }
+
+        .sidebar {
+            width: 20%;
+            background-color: #e7f3ff;
+            padding: 15px;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+            gap: 10px;
+        }
+
+        .sidebar button img {
+            width: 50px;
+            height: 50px;
+        }
+
+        .sidebar button span {
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+
+        .sidebar button:hover {
+            background-color: #0056b3;
+        }
+
+        .content {
+            width: 80%;
+            padding: 20px;
+            background-color: #ffffff;
+            text-align: center;
+        }
+
+        .content h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+	.content h2 {
+            font-size: 1,5em;
+            margin-bottom: 10px;
+	}
+
+        .content p {
+            font-size: 1.2em;
+            color: #555;
+        }
+
+	.bottom-bar {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background-color: #f3f3f3;
+            padding: 10px;
+            box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .bottom-bar p {
+            margin: 0;
+            font-size: 0.9em;
+            color: #555;
+        }
+
+.arrow {
+    position: absolute;
+    top: 10%;
+    left: 0px; /* Ajusta a posição para estar ao lado do texto */
+    transform: translateY(-50%);
+    animation: bounce 1s infinite;
+    font-size: 65px;
+    color: #007bff;
+}
+
+        @keyframes bounce {
+            0%, 100% {
+                transform: translate(-5px, -50%);
+            }
+            50% {
+                transform: translate(5px, -50%);
+            }
+        }
+
+
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <img src="icons/unicamp.png" alt="Logo da Universidade">
+	<h1>Projeto de Inclusão Educacional</h1>
+        <img src="feec.jpg" alt="Logo do Instituto">
+    </div>
+
+    <div class="container">
+        <div class="sidebar">
+            <button>
+                <img src="icons/voice-command.png" alt="Ícone de leitura">
+                <span><b>Leitura</b> por voz</span>
+            </button>
+            <button>
+                <img src="icons/sign-language.png" alt="Ícone de Libras">
+                <span><b>Traduzir</b> para Libras</span>
+            </button>
+            <button>
+                <img src="icons/portrait.png" alt="Ícone de objetos">
+                <span><b>Reconhecimento</b> de Objetos e Ambiente</span>
+            </button>
+            <button>
+                <img src="icons/check-list.png" alt="Ícone de avaliação">
+                <span><b>Avaliação</b> Personalizada</span>
+            </button>
+            <button>
+                <img src="icons/resource-hub.png" alt="Ícone de diagnóstico">
+                <span><b>Diagnóstico</b> Educacional</span>
+            </button>
+        </div>
+
+<div class="content">
+    <div style="position: relative; text-align: left; padding-left: 30px;">
+        <span class="arrow">&#x2190;</span>
+        <h2>Clique ou pronuncie a palavra destacada de acordo com o recurso desejado</h2>
+    </div>
+    <p>Farei trabalho de pedra de amolar, que não tem
+    fio para cortar, mas é capaz de dar gume ao
+    ferro; sem nada escrever eu próprio, ensinarei
+    as regras do mister, as fontes de recursos, o que
+    nutre e forma o poeta, o que fica bem, o que
+    não, aonde leva o acerto, aonde o erro.</p>
+    <p>Dimidium facti qui coepit habet: sapere aude</p>
+</div>
+
+
+        </div>
+    </div>
+</body>
+
+<div class="bottom-bar">
+        <p>2025 Universidade de Campinas - Projeto de Inclusão Educacional - Aluno: Jimi Togni - Orientador: </p>
+</div>
+
+</html>
