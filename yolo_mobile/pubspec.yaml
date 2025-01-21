@@ -1,0 +1,11 @@
+dependencies:
+  flutter:
+    sdk: flutter
+  tflite_flutter: ^0.9.0 # Para integrar o TensorFlow Lite
+  tflite_flutter_helper: ^0.4.0 # Para facilitar operações com TensorFlow Lite
+  flutter_tts: ^3.5.0 # Para leitura em voz alta (Text-to-Speech)
+
+  assets:
+  - assets/model.tflite
+
+
