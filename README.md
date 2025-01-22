@@ -1,4 +1,4 @@
-# educational_Inclusion
+# Development of an Inclusive Educational Platform Using Open Technologies and Machine Learning: A Case Study on Accessibility Enhancement.
 
 This work proposed and developed technological solutions for educational inclusion, integrating machine learning, natural language processing, and cross-platform interfaces. 
 
