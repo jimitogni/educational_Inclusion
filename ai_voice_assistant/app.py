@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from pydantic import BaseModel
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 import torch
 
@@ -6,6 +7,8 @@ import torch
 MODEL_NAME = "mistralai/Mistral-7B-v0.3"
 #MODEL_NAME = "mistralai/Mistral-7B-Instruct-v0.3"
 #MODEL_NAME = "microsoft/phi-2"
+
+app = FastAPI()
 
 # Configure 4-bit quantization
 bnb_config = BitsAndBytesConfig(
@@ -26,19 +29,50 @@ model = AutoModelForCausalLM.from_pretrained(
 
 print("Model loaded successfully!")
 
-# FastAPI setup
-app = FastAPI()
+# Define a request model for proper JSON parsing
+class PromptRequest(BaseModel):
+    prompt: str
 
 # 🚀 Test the model once when the server starts
 prompt = "Explain the importance of AI in education for people with special needs."
-inputs = tokenizer(prompt, return_tensors="pt").to(device)
-outputs = model.generate(**inputs, max_length=200)
-response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-print("Test Output:", response)  # ✅ This prints the model output
+# inputs = tokenizer(prompt, return_tensors="pt").to(device)
+# outputs = model.generate(**inputs, max_length=200)
+# response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+# print("Test Output:", response)  # ✅ This prints the model output
 
+# Home page route
+@app.get("/")
+def home():
+    return {"message": "Welcome to the Mistral-7B API! Use /generate to get responses."}
+
+# Generate response route
+# Corrected POST route
 @app.post("/generate")
-async def generate_text(prompt: str):
-    inputs = tokenizer(prompt, return_tensors="pt").to(device)
+async def generate_text(request: PromptRequest):
+    inputs = tokenizer(request.prompt, return_tensors="pt").to(device)
     outputs = model.generate(**inputs, max_length=200)
     response = tokenizer.decode(outputs[0], skip_special_tokens=True)
     return {"response": response}
+
+
+# @app.get("/generate")
+# async def generate_get(prompt: str = "Explain the importance of AI in education for people with special needs."):
+#     inputs = tokenizer(prompt, return_tensors="pt").to(device)
+#     outputs = model.generate(**inputs, max_length=200)
+#     response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+#     return {"response": response}
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+# Run with: uvicorn app:app --host 0.0.0.0 --port 8000
