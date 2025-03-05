@@ -1,5 +1,6 @@
 trained_model/model.safetensors
-
+new_venv/
+new_venv
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
