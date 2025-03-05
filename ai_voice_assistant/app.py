@@ -59,7 +59,6 @@ training_args = TrainingArguments(
 )
 
 
-
 #print("Model loaded successfully!")
 
 # Define a request model for proper JSON parsing
