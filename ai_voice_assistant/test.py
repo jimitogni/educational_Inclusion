@@ -18,3 +18,5 @@ outputs = model.generate(**inputs, max_length=200)
 response = tokenizer.decode(outputs[0], skip_special_tokens=True)
 
 print("Generated Text:", response)
+
+
