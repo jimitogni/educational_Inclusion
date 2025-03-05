@@ -1,9 +1,14 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig, Trainer, TrainingArguments
+from peft import LoraConfig, get_peft_model
 import torch
+from datasets import load_dataset
 
-# Load model and tokenizer
+
+dataset = load_dataset("openai/webgpt", split="train")
+
+# Load model and tokenizer - token = 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
 MODEL_NAME = "mistralai/Mistral-7B-v0.3"
 #MODEL_NAME = "mistralai/Mistral-7B-Instruct-v0.3"
 #MODEL_NAME = "microsoft/phi-2"
@@ -11,23 +16,51 @@ MODEL_NAME = "mistralai/Mistral-7B-v0.3"
 app = FastAPI()
 
 # Configure 4-bit quantization
-bnb_config = BitsAndBytesConfig(
-    load_in_4bit=True,
-    bnb_4bit_quant_type="nf4",
-    bnb_4bit_compute_dtype=torch.float16
-)
+bnb_config = {
+    "load_in_4bit": True,
+    "bnb_4bit_quant_type": "nf4",
+    "bnb_4bit_compute_dtype": torch.float16
+}
 
 # Load model and tokenizer with reduced memory usage
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+
 model = AutoModelForCausalLM.from_pretrained(
     MODEL_NAME,
-    quantization_config=bnb_config,
-    device_map="auto"
+    device_map="auto",
+    **bnb_config
 )
 
-print("Model loaded successfully!")
+# Apply LoRA (Low-Rank Adaptation)
+lora_config = LoraConfig(
+    r=16, 
+    lora_alpha=32, 
+    lora_dropout=0.05, 
+    target_modules=["q_proj", "v_proj"]
+)
+
+model = get_peft_model(model, lora_config)
+
+print("Model ready for fine-tuning!")
+
+training_args = TrainingArguments(
+    per_device_train_batch_size=2,  # Reduce if out of memory
+    gradient_accumulation_steps=4,
+    warmup_steps=10,
+    learning_rate=2e-4,
+    logging_steps=10,
+    num_train_epochs=3,  # Can increase for better fine-tuning
+    save_strategy="epoch",
+    output_dir="./mistral-finetuned",
+    push_to_hub=False,
+    fp16=True  # Enables mixed precision training
+)
+
+
+
+#print("Model loaded successfully!")
 
 # Define a request model for proper JSON parsing
 class PromptRequest(BaseModel):
