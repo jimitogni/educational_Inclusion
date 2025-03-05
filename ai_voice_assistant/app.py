@@ -8,7 +8,7 @@ from datasets import load_dataset
 # ✅ Load dataset
 dataset = load_dataset("allenai/ai2_arc", "ARC-Challenge", split="train")
 
-# ✅ Load tokenizer
+
 MODEL_NAME = "mistralai/Mistral-7B-v0.3"
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 tokenizer.pad_token = tokenizer.eos_token  # Fix padding issue
