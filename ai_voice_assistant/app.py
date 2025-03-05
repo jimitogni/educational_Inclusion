@@ -8,7 +8,7 @@ from datasets import load_dataset
 
 dataset = load_dataset("openai/webgpt", split="train")
 
-# Load model and tokenizer - token = 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
+# Load model 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 and tokenizer
 MODEL_NAME = "mistralai/Mistral-7B-v0.3"
 #MODEL_NAME = "mistralai/Mistral-7B-Instruct-v0.3"
 #MODEL_NAME = "microsoft/phi-2"
