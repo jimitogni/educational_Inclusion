@@ -1,5 +1,17 @@
 # Development of an Inclusive Educational Platform Using Open Technologies and Machine Learning: A Case Study on Accessibility Enhancement.
 
+New features:
+AI Personal Assistant with:
+- Mistral 7B v0.3 pre-trained
+- Quantization implemented (bitsandbytes → Reduces memory footprint)
+- FastAPI working
+
+Next steps: 
+- Fine-Tuning (datasets → Loads and processes fine-tuning data)
+- PEFT Enables QLoRA fine-tuning
+- datasets → Loads and processes fine-tuning data
+- trl → Implements reward models like PPO/DPO
+
 This work proposed and developed technological solutions for educational inclusion, integrating machine learning, natural language processing, and cross-platform interfaces. 
 
 The main contributions include:
