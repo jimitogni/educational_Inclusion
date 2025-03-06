@@ -2,14 +2,20 @@ import os
 import torch
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
-from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments, Trainer
+from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments, Trainer, BitsAndBytesConfig
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from datasets import load_dataset
 
-# Initialize DDP
 def setup():
-    dist.init_process_group(backend="nccl")  # ✅ Use NCCL for fast GPU communication
-    torch.cuda.set_device(int(os.environ["LOCAL_RANK"]))  # ✅ Assign GPU to each process
+    print(f"[RANK {os.environ.get('LOCAL_RANK', 'UNKNOWN')}] Initializing distributed process group...")
+    dist.init_process_group(
+        backend="nccl",  # ✅ Make sure we use NCCL for GPUs
+        init_method="tcp://192.168.0.17:29500",  # ✅ Explicitly set master IP & port
+        world_size=2, 
+        rank=int(os.environ["RANK"])
+    )
+    torch.cuda.set_device(int(os.environ["LOCAL_RANK"]))  # ✅ Assign GPU to process
+    print(f"[RANK {os.environ.get('LOCAL_RANK', 'UNKNOWN')}] Process group initialized!")
 
 def cleanup():
     dist.destroy_process_group()
@@ -18,27 +24,31 @@ def cleanup():
 setup()
 
 # ✅ Load model and tokenizer
-MODEL_NAME = "mistralai/Mistral-7B-v0.3"
+#MODEL_NAME = "mistralai/Mistral-7B-v0.3"
+MODEL_NAME = "mistralai/Mistral-7B-Instruct-v0.3" 
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 tokenizer.pad_token = tokenizer.eos_token  # Fix padding issue
 
+#################################################################################
+
 # ✅ Define quantization config
-from transformers import BitsAndBytesConfig
 bnb_config = BitsAndBytesConfig(
     load_in_4bit=True,
     bnb_4bit_quant_type="nf4",
     bnb_4bit_compute_dtype=torch.float16
 )
 
-# ✅ Load model with quantization
 model = AutoModelForCausalLM.from_pretrained(
     MODEL_NAME,
-    device_map={"": int(os.environ["LOCAL_RANK"])},  # Assign GPU based on LOCAL_RANK
-    bitsandbytes_config=bnb_config
+    device_map="auto",
+    quantization_config=bnb_config,
+    torch_dtype=torch.float16
 )
 
 # ✅ Prepare model for LoRA fine-tuning
 model = prepare_model_for_kbit_training(model)
+
+#################################################################################
 
 # ✅ Apply LoRA adapters
 lora_config = LoraConfig(
@@ -50,7 +60,12 @@ lora_config = LoraConfig(
 model = get_peft_model(model, lora_config)
 
 # ✅ Wrap model in DDP
-model = DDP(model, device_ids=[int(os.environ["LOCAL_RANK"])], output_device=int(os.environ["LOCAL_RANK"]))
+model = DDP(
+    model,
+    device_ids=[int(os.environ["LOCAL_RANK"])],
+    output_device=int(os.environ["LOCAL_RANK"]),
+    find_unused_parameters=True
+)
 
 # ✅ Load dataset
 dataset = load_dataset("allenai/ai2_arc", "ARC-Challenge", split="train")
@@ -84,7 +99,7 @@ formatted_dataset = dataset.map(preprocess_function)
 # ✅ Training arguments
 training_args = TrainingArguments(
     per_device_train_batch_size=1,
-    gradient_accumulation_steps=2,
+    gradient_accumulation_steps=4,
     gradient_checkpointing=True,
     learning_rate=2e-4,
     num_train_epochs=3,
