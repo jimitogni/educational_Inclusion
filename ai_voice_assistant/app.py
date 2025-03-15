@@ -17,15 +17,7 @@ def setup():
     torch.cuda.set_device(int(os.environ["LOCAL_RANK"]))  # ✅ Assign GPU to process
     print(f"[RANK {os.environ.get('LOCAL_RANK', 'UNKNOWN')}] Process group initialized!")
 
-def cleanup():
-    dist.destroy_process_group()
 
-# ✅ Run setup for distributed training
-setup()
-
-# ✅ Load model and tokenizer
-#MODEL_NAME = "mistralai/Mistral-7B-v0.3"
-MODEL_NAME = "mistralai/Mistral-7B-Instruct-v0.3" 
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 tokenizer.pad_token = tokenizer.eos_token  # Fix padding issue
 
