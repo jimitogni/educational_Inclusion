@@ -1,80 +1,116 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
-from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+import os
 import torch
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
+from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments, Trainer, BitsAndBytesConfig
+from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+from datasets import load_dataset
 
-# Load model and tokenizer
-MODEL_NAME = "mistralai/Mistral-7B-v0.3"
-#MODEL_NAME = "mistralai/Mistral-7B-Instruct-v0.3"
-#MODEL_NAME = "microsoft/phi-2"
+def setup():
+    print(f"[RANK {os.environ.get('LOCAL_RANK', 'UNKNOWN')}] Initializing distributed process group...")
+    dist.init_process_group(
+        backend="nccl",  # ✅ Make sure we use NCCL for GPUs
+        init_method="tcp://192.168.0.17:29500",  # ✅ Explicitly set master IP & port
+        world_size=2, 
+        rank=int(os.environ["RANK"])
+    )
+    torch.cuda.set_device(int(os.environ["LOCAL_RANK"]))  # ✅ Assign GPU to process
+    print(f"[RANK {os.environ.get('LOCAL_RANK', 'UNKNOWN')}] Process group initialized!")
 
-app = FastAPI()
 
-# Configure 4-bit quantization
+tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+tokenizer.pad_token = tokenizer.eos_token  # Fix padding issue
+
+#################################################################################
+
+# ✅ Define quantization config
 bnb_config = BitsAndBytesConfig(
     load_in_4bit=True,
     bnb_4bit_quant_type="nf4",
     bnb_4bit_compute_dtype=torch.float16
 )
 
-# Load model and tokenizer with reduced memory usage
-device = "cuda" if torch.cuda.is_available() else "cpu"
-
-tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 model = AutoModelForCausalLM.from_pretrained(
     MODEL_NAME,
+    device_map="auto",
     quantization_config=bnb_config,
-    device_map="auto"
+    torch_dtype=torch.float16
 )
 
-print("Model loaded successfully!")
+# ✅ Prepare model for LoRA fine-tuning
+model = prepare_model_for_kbit_training(model)
 
-# Define a request model for proper JSON parsing
-class PromptRequest(BaseModel):
-    prompt: str
+#################################################################################
 
-# 🚀 Test the model once when the server starts
-prompt = "Explain the importance of AI in education for people with special needs."
-# inputs = tokenizer(prompt, return_tensors="pt").to(device)
-# outputs = model.generate(**inputs, max_length=200)
-# response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-# print("Test Output:", response)  # ✅ This prints the model output
+# ✅ Apply LoRA adapters
+lora_config = LoraConfig(
+    r=16, 
+    lora_alpha=32, 
+    lora_dropout=0.1, 
+    target_modules=["q_proj", "v_proj"]
+)
+model = get_peft_model(model, lora_config)
 
-# Home page route
-@app.get("/")
-def home():
-    return {"message": "Welcome to the Mistral-7B API! Use /generate to get responses."}
+# ✅ Wrap model in DDP
+model = DDP(
+    model,
+    device_ids=[int(os.environ["LOCAL_RANK"])],
+    output_device=int(os.environ["LOCAL_RANK"]),
+    find_unused_parameters=True
+)
 
-# Generate response route
-# Corrected POST route
-@app.post("/generate")
-async def generate_text(request: PromptRequest):
-    inputs = tokenizer(request.prompt, return_tensors="pt").to(device)
-    outputs = model.generate(**inputs, max_length=200)
-    response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    return {"response": response}
+# ✅ Load dataset
+dataset = load_dataset("allenai/ai2_arc", "ARC-Challenge", split="train")
 
-
-# @app.get("/generate")
-# async def generate_get(prompt: str = "Explain the importance of AI in education for people with special needs."):
-#     inputs = tokenizer(prompt, return_tensors="pt").to(device)
-#     outputs = model.generate(**inputs, max_length=200)
-#     response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-#     return {"response": response}
-
+# ✅ Preprocess dataset
+def preprocess_function(example):
+    choices_text = example["choices"]["text"]
+    choices_labels = example["choices"]["label"]
     
+    formatted_prompt = f"Question: {example['question']}\nOptions:\n"
+    formatted_prompt += "\n".join([f"({label}) {text}" for label, text in zip(choices_labels, choices_text)])
+    formatted_prompt += "\nAnswer:"
 
+    inputs = tokenizer(
+        formatted_prompt,
+        padding="max_length",
+        truncation=True,
+        max_length=512,
+        return_tensors="pt"
+    )
 
+    labels = inputs["input_ids"].clone()
+    labels[labels == tokenizer.pad_token_id] = -100
+    inputs["labels"] = labels
 
+    return {key: value.squeeze(0).tolist() for key, value in inputs.items()}
 
+# ✅ Apply preprocessing
+formatted_dataset = dataset.map(preprocess_function)
 
+# ✅ Training arguments
+training_args = TrainingArguments(
+    per_device_train_batch_size=1,
+    gradient_accumulation_steps=4,
+    gradient_checkpointing=True,
+    learning_rate=2e-4,
+    num_train_epochs=3,
+    logging_steps=10,
+    save_strategy="epoch",
+    output_dir="./mistral-finetuned",
+    remove_unused_columns=False,
+    fp16=True
+)
 
+# ✅ Trainer
+trainer = Trainer(
+    model=model,
+    train_dataset=formatted_dataset,
+    args=training_args
+)
 
+# ✅ Start training
+trainer.train()
 
-
-
-
-
-
-    
-# Run with: uvicorn app:app --host 0.0.0.0 --port 8000
+# ✅ Clean up DDP
+cleanup()
